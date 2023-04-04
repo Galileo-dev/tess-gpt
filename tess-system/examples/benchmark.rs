@@ -25,7 +25,11 @@ fn benchmark_tokenizer() {
     tokenizer_iter_char(1_000_000, 10000, None);
 }
 
-fn tokenizer_iter_char(iterations: usize, input_size: usize, vocab: Option<String>) {
+fn tokenizer_iter_char(
+    iterations: usize,
+    input_size: usize,
+    vocab: Option<String>,
+) -> Result<(), String> {
     // if no vocab is provided, use the default
     let vocab = vocab.map_or_else(|| String::from("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "), |v| v);
     let vocab_size = vocab.len();
@@ -43,19 +47,39 @@ fn tokenizer_iter_char(iterations: usize, input_size: usize, vocab: Option<Strin
         .map(char::from)
         .collect::<String>();
 
+    let output = tokenizer.encode(input.clone())?;
+    // cut off the end of the string if it is too long and add a number to the end to indicate how many chars were cut off
+    let input = if input.len() > 100 {
+        let mut input = input.chars().take(100).collect::<String>();
+        input.push_str(&format!("...({} chars cut off)", input_size - 100));
+        input
+    } else {
+        input
+    };
+
+    // cut off the end of the string if it is too long and add a number to the end to indicate how many chars were cut off
+    let output_info: String = if output.len() > 100 {
+        let mut output = output
+            .iter()
+            .take(100)
+            .map(|t| t.to_string())
+            .collect::<String>();
+        output.push_str(&format!("...({} tokens cut off)", output.len() - 100));
+        output
+    } else {
+        output.iter().map(|t| t.to_string()).collect::<String>()
+    };
+
     println!("input: {input}");
-    print!("output: ");
-    let encoded = tokenizer.encode(input.clone());
-    for t in &encoded {
-        print!("{t} ");
-    }
-    println!();
+    println!("output: {output_info}");
 
     let start = std::time::Instant::now();
     for _ in 0..iterations {
-        let encoded = tokenizer.encode(input.clone());
+        let encoded = tokenizer.encode(input.clone())?;
         let decoded = tokenizer.decode(encoded);
     }
     let end = std::time::Instant::now();
     println!("Time taken: {}ms", (end - start).as_millis());
+
+    Ok(())
 }

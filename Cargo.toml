@@ -7,13 +7,16 @@ description = "A refreshingly simple data-driven game engine and app framework"
 exclude = ["assets/", "tools/", ".github/", "crates/", "examples/wasm/assets/"]
 
 [dependencies]
+rayon = "1.7.0"
 tess-system = { path = "./tess-system" }
+tess-math = { path = "./tess-math" }
 
 # this is a workspace for the project
 [workspace]
 resolver = "2"
 members = [
     "tess-system",
+    "tess-math",
     "examples/*",
 ]
 

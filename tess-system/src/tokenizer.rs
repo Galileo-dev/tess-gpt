@@ -2,8 +2,17 @@
 
 use std::collections::HashMap;
 
-#[derive(Clone)]
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+
+#[derive(Clone, Debug)]
 pub struct Token(u8);
+
+// impl from Vec<Token> to Vec<u8>
+impl From<Token> for u8 {
+    fn from(token: Token) -> Self {
+        token.0
+    }
+}
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -13,16 +22,15 @@ impl std::fmt::Display for Token {
 
 // u8 has a max value of 255
 // our alphabet is 65 characters
-
 pub struct Tokenizer {
-    mapping: HashMap<String, Token>,
+    pub mapping: HashMap<String, Token>,
 }
 
 pub trait encode {
-    fn encode(&self, input: String) -> Vec<Token>;
+    fn encode(&self, input: String) -> Result<Vec<Token>, String>;
 }
 pub trait decode {
-    fn decode(&self, input: Vec<Token>) -> String;
+    fn decode(&self, input: Vec<Token>) -> Result<String, String>;
 }
 
 impl Tokenizer {
@@ -38,26 +46,27 @@ impl Tokenizer {
 }
 
 impl encode for Tokenizer {
-    fn encode(&self, input: String) -> Vec<Token> {
+    fn encode(&self, input: String) -> Result<Vec<Token>, String> {
         let mut output = Vec::new();
         for c in input.chars() {
-            output.push(self.mapping.get(&c.to_string()).unwrap().clone());
-        }
-        output
-    }
-}
-
-impl decode for Tokenizer {
-    fn decode(&self, input: Vec<Token>) -> String {
-        let mut output = String::new();
-        for t in input {
-            for (k, v) in &self.mapping {
-                if v.0 == t.0 {
-                    output.push_str(k);
-                }
+            match self.mapping.get(&c.to_string()) {
+                Some(token) => output.push(token.clone()),
+                None => return Err(format!("Error encoding character '{}'", c)),
             }
         }
-        output
+        Ok(output)
+    }
+}
+impl decode for Tokenizer {
+    fn decode(&self, input: Vec<Token>) -> Result<String, String> {
+        let mut output = String::new();
+        for t in input {
+            match self.mapping.iter().find(|(_, v)| v.0 == t.0) {
+                Some((k, _)) => output.push_str(k),
+                None => return Err(format!("Error decoding token '{:?}'", t)),
+            }
+        }
+        Ok(output)
     }
 }
 
@@ -72,8 +81,8 @@ mod tests {
         let tokenizer = Tokenizer::new(vocab);
 
         let input = String::from("Hello World!");
-        let encoded = tokenizer.encode(input.clone());
-        let decoded = tokenizer.decode(encoded);
+        let encoded = tokenizer.encode(input.clone()).unwrap();
+        let decoded = tokenizer.decode(encoded).unwrap();
 
         assert_eq!(input, decoded);
     }
