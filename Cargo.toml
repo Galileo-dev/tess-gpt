@@ -1,0 +1,19 @@
+[package]
+name = "tess-gpt"
+version = "0.0.1"
+edition = "2021"
+categories = ["game-engines", "graphics", "gui", "rendering"]
+description = "A refreshingly simple data-driven game engine and app framework"
+exclude = ["assets/", "tools/", ".github/", "crates/", "examples/wasm/assets/"]
+
+[dependencies]
+tess-system = { path = "./tess-system" }
+
+# this is a workspace for the project
+[workspace]
+resolver = "2"
+members = [
+    "tess-system",
+    "examples/*",
+]
+
