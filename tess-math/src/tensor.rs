@@ -1,4 +1,7 @@
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::fmt::Debug;
+use std::iter::FromIterator;
 use std::ops::{Bound, RangeBounds};
 use std::{
     fmt::{self, Display, Formatter},
@@ -84,6 +87,52 @@ where
         index
     }
 
+    pub fn randint(low: i32, high: i32, shape: Vec<usize>, seed: u64) -> Tensor<i32> {
+        assert!(low <= high, "low must be less than or equal to high");
+        // if no seed is provided, use the current time as a seed
+        let mut rng = if seed == 0 {
+            StdRng::from_entropy()
+        } else {
+            StdRng::seed_from_u64(seed)
+        };
+
+        let mut data = Vec::new();
+        for _ in 0..shape.iter().product() {
+            let value = rng.gen_range(low..=high);
+            data.push(value);
+        }
+
+        Tensor::new(data, shape)
+    }
+
+    pub fn stack(&self, other: &Self, axis: usize) -> Option<Self> {
+        if self.shape.len() != other.shape.len() {
+            return None;
+        }
+
+        let mut shape = self.shape.clone();
+        shape[axis] += other.shape[axis];
+        let mut data = Vec::with_capacity(shape.iter().product());
+        let mut offset = 0;
+
+        for i in 0..self.len() {
+            if i % self.shape[axis] == 0 {
+                offset += other.shape[axis];
+            }
+            data.push(self.data[i]);
+        }
+
+        for i in 0..other.len() {
+            let j = i + offset;
+            if j % shape[axis] == 0 {
+                offset += self.shape[axis];
+            }
+            data.push(other.data[i]);
+        }
+
+        Some(Self::new(data, shape))
+    }
+
     pub fn len(&self) -> usize {
         self.data.len()
     }
@@ -126,5 +175,53 @@ where
             "Tensor {{ shape: {:?}, data: {:?} }}",
             self.shape, self.data
         )
+    }
+}
+
+pub struct TensorIter<'a, T>
+where
+    T: Copy,
+{
+    tensor: &'a Tensor<T>,
+    index: usize,
+}
+
+impl<'a, T> Iterator for TensorIter<'a, T>
+where
+    T: Copy,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.tensor.len() {
+            let result = Some(&self.tensor.data[self.index]);
+            self.index += 1;
+            result
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> Tensor<T>
+where
+    T: Copy,
+{
+    pub fn iter(&self) -> TensorIter<T> {
+        TensorIter {
+            tensor: self,
+            index: 0,
+        }
+    }
+}
+
+impl<T> FromIterator<T> for Tensor<T>
+where
+    T: Copy,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let data: Vec<T> = iter.into_iter().collect();
+        let shape = vec![data.len()];
+        Self::new(data, shape)
     }
 }

@@ -184,6 +184,9 @@ dependencies = [
 [[package]]
 name = "tess-math"
 version = "0.1.0"
+dependencies = [
+ "rand",
+]
 
 [[package]]
 name = "tess-system"

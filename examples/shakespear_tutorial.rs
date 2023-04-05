@@ -122,5 +122,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("when input is : {context}, the target it : {target}");
     }
 
+    // batch dimension
+    let batch_size: usize = 4; // how many independent sequences we want to train on in sequence
+    let block_size: usize = 8; // how many tokens per sequence
+
+    // get a batch of data
+    let (x, y) = get_batch("train", &test_data, &train_data, batch_size, block_size);
+
     Ok(())
+}
+
+fn get_batch(
+    split: &str,
+    test_data: &Tensor<u8>,
+    train_data: &Tensor<u8>,
+    batch_size: usize,
+    block_size: usize,
+) -> (Tensor<u8>, Tensor<u8>) {
+    let data = match split {
+        "train" => train_data,
+        "test" => test_data,
+        _ => panic!("split must be 'train' or 'test'"),
+    };
+
+    let ix: Tensor<i32> = Tensor::<i32>::randint(
+        0,
+        (data.len() - block_size).try_into().unwrap(),
+        vec![batch_size],
+        1337,
+    );
+
+    // [data[i:i+block_size] for i in ix]
+    let block_1 = ix
+        .iter()
+        .map(|i| data.get_range(&[*i as usize..*i as usize + block_size]))
+        // collect into a tensor using stack
+        .collect::<Tensor<u8>>();
+    // x = Tensor::stack(data.get_range()
+    // print block_1
+    println!("block_1: {:?}", block_1);
+    println!("ix: {:?}", ix);
+    todo!()
 }
