@@ -94,7 +94,25 @@ where
     T: Copy + Display + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "tensor(")?;
+        for (i, dim) in self.shape.iter().enumerate() {
+            write!(f, "[")?;
+            for j in 0..*dim {
+                let index = match i {
+                    0 => j,
+                    _ => j * self.shape[i - 1],
+                };
+                write!(f, "{}", self.data[index])?;
+                if j != *dim - 1 {
+                    write!(f, ", ")?;
+                }
+            }
+            write!(f, "]")?;
+            if i != self.shape.len() - 1 {
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, ")")
     }
 }
 
