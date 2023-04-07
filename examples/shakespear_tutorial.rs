@@ -16,7 +16,7 @@ use tess_system::tokenizer::{encode, Tokenizer};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // start by loading the shakespear text
-    let filename = r"dataset\shakespear\input.txt";
+    let filename = r"./dataset/shakespear/input.txt";
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
