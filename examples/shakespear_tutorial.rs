@@ -119,15 +119,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for t in 0..block_size {
         let context = x.get_range(&[..t + 1]);
         let target = y.get(&[t]);
-        println!("when input is : {context}, the target it : {target}");
+        println!("when input is : {context},\n the target it : {target}");
     }
 
     // batch dimension
     let batch_size: usize = 4; // how many independent sequences we want to train on in sequence
-    let block_size: usize = 8; // how many tokens per sequence
+    let block_size: usize = 8; // maximum context length for prediction
 
     // get a batch of data
-    let (x, y) = get_batch("train", &test_data, &train_data, batch_size, block_size);
+    let (xb, yb) = get_batch("train", &test_data, &train_data, batch_size, block_size);
+
+    println!("inputs: {:?}", xb);
+    println!("targets: {:?}", yb);
+
+    println!("-----");
+
+    for b in 0..batch_size {
+        println!("batch: {}", b);
+        for t in 0..block_size {
+            let context = xb.get_slice(b, 0..t + 1);
+            let target = yb.get_element(b, t);
+            println!("when input is : {:?}, the target it : {target}", context);
+        }
+    }
 
     Ok(())
 }
@@ -153,14 +167,23 @@ fn get_batch(
     );
 
     // [data[i:i+block_size] for i in ix]
-    let block_1 = ix
+    let x = ix
         .iter()
         .map(|i| data.get_range(&[*i as usize..*i as usize + block_size]))
         // collect into a tensor using stack
         .collect::<Tensor<u8>>();
+
+    // [data[i+1:i+block_size+1] for i in ix]
+    let y = ix
+        .iter()
+        .map(|i| data.get_range(&[*i as usize + 1..*i as usize + block_size + 1]))
+        // collect into a tensor using stack
+        .collect::<Tensor<u8>>();
+
     // x = Tensor::stack(data.get_range()
     // print block_1
-    println!("block_1: {:?}", block_1);
     println!("ix: {:?}", ix);
-    todo!()
+    println!("x: {}", x);
+    println!("y: {}", y);
+    return (x, y);
 }
