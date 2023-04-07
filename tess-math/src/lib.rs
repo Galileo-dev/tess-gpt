@@ -1,8 +1,3 @@
-pub mod ml;
-use ml::LanguageModel;
+pub mod language_models;
+use language_models::BigramLanguageModel;
 pub mod tensor;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
