@@ -10,8 +10,8 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use rayon::{prelude::*, range};
-use tess_math::tensor::Tensor;
+use rayon::prelude::*;
+use tess_math::math::Tensor;
 use tess_system::tokenizer::{encode, Tokenizer};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -99,26 +99,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get the first 100 tokens from the tensor
     // slice of usize from 0 to 100
     // let data = data.get(slice);
-    println!("index 1 is {}", data.get(&[1]));
-    println!("the first 100:  {:?}", data.get_range(&[0..100]));
+    println!("index 1 is {:?}", data.get(.., 1));
+    println!("the first 100:  {:?}", data.get(.., 0..100));
 
     // train test split of 90% train and 10% test
     let n = (data.len() as f32 * 0.9) as usize; // first 90% of the data
-    let train_data = data.get_range(&[..n]);
-    let test_data = data.get_range(&[n..]);
+    let train_data = data.get(.., ..n);
+    let test_data = data.get(.., n..);
     println!("train len: {}", train_data.len());
     println!("test len: {}", test_data.len());
 
     let block_size = 8; // 8 tokens per block
-    let block = train_data.get_range(&[..block_size + 1]);
+    let block = train_data.get(.., ..block_size + 1);
     println!("block: {:?}", block);
 
     // show an example of how it learns
-    let x = train_data.get_range(&[..block_size]);
-    let y = train_data.get_range(&[1..=block_size]);
+    let x = train_data.get(.., ..block_size);
+    let y = train_data.get(.., 1..=block_size);
     for t in 0..block_size {
-        let context = x.get_range(&[..t + 1]);
-        let target = y.get(&[t]);
+        let context = x.get(.., ..t + 1);
+        let target = y.get(.., t);
         println!("when input is : {context},\n the target it : {target}");
     }
 
@@ -137,8 +137,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for b in 0..batch_size {
         println!("batch: {}", b);
         for t in 0..block_size {
-            let context = xb.get_slice(b, 0..t + 1);
-            let target = yb.get_element(b, t);
+            let context = xb.get(b, 0..t + 1);
+            let target = yb.get(b, t);
             println!("when input is : {:?}, the target it : {target}", context);
         }
     }
@@ -169,14 +169,14 @@ fn get_batch(
     // [data[i:i+block_size] for i in ix]
     let x = ix
         .iter()
-        .map(|i| data.get_range(&[*i as usize..*i as usize + block_size]))
+        .map(|i| data.get(.., *i as usize..*i as usize + block_size))
         // collect into a tensor using stack
         .collect::<Tensor<u8>>();
 
     // [data[i+1:i+block_size+1] for i in ix]
     let y = ix
         .iter()
-        .map(|i| data.get_range(&[*i as usize + 1..*i as usize + block_size + 1]))
+        .map(|i| data.get(.., *i as usize + 1..*i as usize + block_size + 1))
         // collect into a tensor using stack
         .collect::<Tensor<u8>>();
 
