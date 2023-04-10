@@ -250,7 +250,7 @@ mod tests {
 
         // Test getting a sub-tensor with a single row or column
         assert_eq!(tensor.get(1..2, 0..3).data(), &[4, 5, 6]);
-        assert_eq!(tensor.get(0..2, 2..=3).data(), &[3, 6]);
+        assert_eq!(tensor.get(0..2, 2..=2).data(), &[3, 6]);
         assert_eq!(tensor.get(1..2, &[0, 1, 2]).data(), &[4, 5, 6]);
     }
 }
