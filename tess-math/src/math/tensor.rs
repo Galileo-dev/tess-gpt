@@ -1,14 +1,14 @@
+use rand::prelude::*;
+use std::{
+    fmt::Debug,
+    ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
+};
+
 // ===========================================================
 /// A simple tensor library.
 // Author: Galileo-Dev
 // Date: 2023-04-09
 // ===========================================================
-use std::{
-    fmt::Debug,
-    ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
-};
-
-use rand::prelude::*;
 
 #[derive(Debug, PartialEq)]
 pub struct Tensor<T> {
@@ -54,85 +54,73 @@ where
 
         Tensor::new(data, shape)
     }
+}
 
-    pub fn stack(tensors: &[&Self], axis: usize) -> Option<Self> {
-        if tensors.is_empty() {
-            return None;
+pub enum MyRange {
+    Empty,
+    Range(Range<usize>),
+    RangeFrom(RangeFrom<usize>),
+    RangeTo(RangeTo<usize>),
+    RangeFull(RangeFull),
+    RangeInclusive(RangeInclusive<usize>),
+    RangeToInclusive(RangeToInclusive<usize>),
+}
+
+pub enum Indices {
+    Vec(Vec<usize>),
+    Range(MyRange),
+}
+
+// from range
+impl From<Range<usize>> for Indices {
+    fn from(range: Range<usize>) -> Indices {
+        Indices::Range(MyRange::Range(range))
+    }
+}
+
+impl From<std::ops::RangeTo<usize>> for Indices {
+    fn from(range: std::ops::RangeTo<usize>) -> Indices {
+        Indices::Range(MyRange::RangeTo(range))
+    }
+}
+
+impl From<std::ops::RangeFrom<usize>> for Indices {
+    fn from(range: std::ops::RangeFrom<usize>) -> Indices {
+        Indices::Range(MyRange::RangeFrom(range))
+    }
+}
+
+impl From<std::ops::RangeFull> for Indices {
+    fn from(range: std::ops::RangeFull) -> Indices {
+        Indices::Range(MyRange::RangeFull(range))
+    }
+}
+
+impl From<std::ops::RangeInclusive<usize>> for Indices {
+    fn from(range: std::ops::RangeInclusive<usize>) -> Indices {
+        Indices::Range(MyRange::RangeInclusive(range))
+    }
+}
+
+impl From<std::ops::RangeToInclusive<usize>> for Indices {
+    fn from(range: std::ops::RangeToInclusive<usize>) -> Indices {
+        Indices::Range(MyRange::RangeToInclusive(range))
+    }
+}
+
+impl<const N: usize> From<&[usize; N]> for Indices {
+    fn from(slice: &[usize; N]) -> Self {
+        let mut indices = Vec::new();
+        for i in slice {
+            indices.push(*i as usize);
         }
-        let shape: Vec<usize> = {
-            let mut shape = tensors[0].shape.clone();
-            shape.insert(axis, tensors.len());
-            shape
-        };
-        let mut data: Vec<T> = Vec::with_capacity(shape.iter().product());
-        for i in 0..shape[axis] {
-            for tensor in tensors {
-                let mut indices: Vec<usize> = vec![i];
-                for j in 0..tensor.shape.len() {
-                    if j == axis {
-                        indices.extend(0..1);
-                    } else {
-                        indices.push(0);
-                    }
-                }
-                for j in 0..tensor.shape[axis] {
-                    indices[axis + 1] = j;
-                    let value = tensor.get(.., indices);
-                    data.push(value);
-                }
-            }
-        }
-        Some(Self::new(data, shape))
+        Indices::Vec(indices)
     }
 }
 
-pub enum Index {
-    Index(usize),
-    Range(Bound<usize>, Bound<usize>),
-}
-
-impl From<usize> for Index {
-    fn from(idx: usize) -> Self {
-        Index::Index(idx)
-    }
-}
-
-impl From<RangeFull> for Index {
-    fn from(_: RangeFull) -> Self {
-        Index::Range(Bound::Unbounded, Bound::Unbounded)
-    }
-}
-
-impl From<Range<usize>> for Index {
-    fn from(range: Range<usize>) -> Self {
-        Index::Range(Bound::Included(range.start), Bound::Excluded(range.end))
-    }
-}
-
-impl From<RangeTo<usize>> for Index {
-    fn from(range: RangeTo<usize>) -> Self {
-        Index::Range(Bound::Unbounded, Bound::Excluded(range.end))
-    }
-}
-
-impl From<RangeInclusive<usize>> for Index {
-    fn from(range: RangeInclusive<usize>) -> Self {
-        Index::Range(
-            Bound::Included(*range.start()),
-            Bound::Included(*range.end()),
-        )
-    }
-}
-
-impl From<RangeToInclusive<usize>> for Index {
-    fn from(range: RangeToInclusive<usize>) -> Self {
-        Index::Range(Bound::Unbounded, Bound::Included(range.end))
-    }
-}
-
-impl From<RangeFrom<usize>> for Index {
-    fn from(range: RangeFrom<usize>) -> Self {
-        Index::Range(Bound::Included(range.start), Bound::Unbounded)
+impl From<usize> for Indices {
+    fn from(index: usize) -> Self {
+        Indices::Vec(vec![index])
     }
 }
 
@@ -157,55 +145,45 @@ where
     /// tensor.get(.., ..2);
     pub fn get<R, C>(&self, row: R, column: C) -> Self
     where
-        R: Into<Indices>,
-        C: Into<Indices>,
+        for<'a> R: Into<Indices>,
+        C: for<'a> Into<Indices>,
     {
-        let row_ranges = match row.into() {
-            Index::Index(row) => (row..(row + 1)),
-            Index::Range(start, end) => {
-                let start = match start {
-                    Bound::Included(start) => start,
-                    Bound::Excluded(start) => start + 1,
-                    Bound::Unbounded => 0,
-                };
+        let row_indices: Vec<usize> = match row.into() {
+            Indices::Range(range) => match range.into() {
+                MyRange::Range(range) => range_to_indices(range, self.shape[0]),
+                MyRange::RangeFrom(range) => range_to_indices(range, self.shape[0]),
+                MyRange::RangeTo(range) => range_to_indices(range, self.shape[0]),
+                MyRange::RangeFull(range) => range_to_indices(range, self.shape[0]),
+                MyRange::RangeInclusive(range) => range_to_indices(range, self.shape[0]),
+                MyRange::RangeToInclusive(range) => range_to_indices(range, self.shape[0]),
+                MyRange::Empty => vec![],
+            },
 
-                let end = match end {
-                    Bound::Included(end) => end + 1,
-                    Bound::Excluded(end) => end,
-                    Bound::Unbounded => self.shape[0],
-                };
-
-                (start..end)
-            }
+            Indices::Vec(indices) => indices,
         };
 
-        let col_ranges = match column.into() {
-            Index::Index(col) => (col..(col + 1)),
-            Index::Range(start, end) => {
-                let start = match start {
-                    Bound::Included(start) => start,
-                    Bound::Excluded(start) => start + 1,
-                    Bound::Unbounded => 0,
-                };
-
-                let end = match end {
-                    Bound::Included(end) => end + 1,
-                    Bound::Excluded(end) => end,
-                    Bound::Unbounded => self.shape[1],
-                };
-
-                (start..end)
-            }
+        let column_indices: Vec<usize> = match column.into() {
+            Indices::Range(range) => match range.into() {
+                MyRange::Range(range) => range_to_indices(range, self.shape[1]),
+                MyRange::RangeFrom(range) => range_to_indices(range, self.shape[1]),
+                MyRange::RangeTo(range) => range_to_indices(range, self.shape[1]),
+                MyRange::RangeFull(range) => range_to_indices(range, self.shape[1]),
+                MyRange::RangeInclusive(range) => range_to_indices(range, self.shape[1]),
+                MyRange::RangeToInclusive(range) => range_to_indices(range, self.shape[1]),
+                MyRange::Empty => vec![],
+            },
+            Indices::Vec(indices) => indices,
         };
 
-        let indices = row_ranges
-            .clone()
-            .flat_map(|row| col_ranges.clone().map(move |col| self.index(row, col)))
-            .collect();
+        let mut data = Vec::new();
 
-        let shape = vec![row_ranges.len(), col_ranges.len()];
+        for row in &row_indices {
+            for col in &column_indices {
+                data.push(self.index(*row, *col));
+            }
+        }
 
-        Self::new(indices, shape)
+        Tensor::new(data, vec![row_indices.len(), column_indices.len()])
     }
 
     fn index(&self, row: usize, col: usize) -> T {
@@ -213,10 +191,18 @@ where
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Slice {
-    Index(isize),
-    Slice(isize, isize, isize),
+fn range_to_indices(range: impl std::ops::RangeBounds<usize>, size: usize) -> Vec<usize> {
+    let start = match range.start_bound() {
+        std::ops::Bound::Included(&n) => n,
+        std::ops::Bound::Excluded(&n) => n + 1,
+        std::ops::Bound::Unbounded => 0,
+    };
+    let end = match range.end_bound() {
+        std::ops::Bound::Included(&n) => n + 1,
+        std::ops::Bound::Excluded(&n) => n,
+        std::ops::Bound::Unbounded => size,
+    };
+    (start..end).collect()
 }
 
 #[cfg(test)]
@@ -264,6 +250,7 @@ mod tests {
 
         // Test getting a sub-tensor with a single row or column
         assert_eq!(tensor.get(1..2, 0..3).data(), &[4, 5, 6]);
-        assert_eq!(tensor.get(0..2, 2..3).data(), &[3, 6]);
+        assert_eq!(tensor.get(0..2, 2..=3).data(), &[3, 6]);
+        assert_eq!(tensor.get(1..2, &[0, 1, 2]).data(), &[4, 5, 6]);
     }
 }
