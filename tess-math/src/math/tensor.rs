@@ -205,6 +205,68 @@ fn range_to_indices(range: impl std::ops::RangeBounds<usize>, size: usize) -> Ve
     (start..end).collect()
 }
 
+// Iterator over the indices of a tensor
+pub struct TensorIter<'a, T>
+where
+    T: Copy + Debug,
+{
+    tensor: &'a Tensor<T>,
+    index: usize,
+}
+
+impl<'a, T> Iterator for TensorIter<'a, T>
+where
+    T: Copy + Debug,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.tensor.len() {
+            let result = Some(&self.tensor.data[self.index]);
+            self.index += 1;
+            result
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> Tensor<T>
+where
+    T: Copy + Debug,
+{
+    pub fn iter(&self) -> TensorIter<T> {
+        TensorIter {
+            tensor: self,
+            index: 0,
+        }
+    }
+}
+
+impl<T> FromIterator<Tensor<T>> for Tensor<T>
+where
+    T: Copy + Debug,
+{
+    fn from_iter<I: IntoIterator<Item = Tensor<T>>>(iter: I) -> Self {
+        let mut tensors = iter.into_iter();
+        let mut data = Vec::new();
+        let mut shape = Vec::new();
+        let mut output: Vec<Tensor<T>> = Vec::new();
+        if let Some(first_tensor) = tensors.next() {
+            shape.push(1);
+            shape.extend(first_tensor.shape.clone());
+            data.extend(first_tensor.data.clone());
+            output.push(first_tensor);
+        }
+        for tensor in tensors {
+            shape[0] += 1;
+            data.extend(tensor.data.clone());
+            output.push(tensor);
+        }
+        Self::new(data, shape)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
