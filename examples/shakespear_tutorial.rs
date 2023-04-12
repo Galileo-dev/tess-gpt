@@ -16,7 +16,7 @@ use tess_system::tokenizer::{encode, Tokenizer};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // start by loading the shakespear text
-    let filename = r"./dataset/shakespear/input.txt";
+    let filename = r"./dataset/shakespear.txt";
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
 
@@ -94,11 +94,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // create a tensor from the encoded tokens
     let shape = vec![encoded.clone().len()];
+    println!("shape: {:?}", shape);
     let data = Tensor::new(encoded, shape);
 
     // get the first 100 tokens from the tensor
     // slice of usize from 0 to 100
     // let data = data.get(slice);
+    println!("data: {:?}", data);
     println!("index 1 is {:?}", data.get(.., 1));
     println!("the first 100:  {:?}", data.get(.., 0..100));
 
@@ -119,7 +121,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for t in 0..block_size {
         let context = x.get(.., ..t + 1);
         let target = y.get(.., t);
-        println!("when input is : {context},\n the target it : {target}");
+        println!(
+            "when input is : {:?},\n the target it : {:?}",
+            context, target
+        );
     }
 
     // batch dimension
@@ -139,7 +144,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for t in 0..block_size {
             let context = xb.get(b, 0..t + 1);
             let target = yb.get(b, t);
-            println!("when input is : {:?}, the target it : {target}", context);
+            println!(
+                "when input is : {:?}, the target it : {:?}",
+                context, target
+            );
         }
     }
 
@@ -183,7 +191,7 @@ fn get_batch(
     // x = Tensor::stack(data.get_range()
     // print block_1
     println!("ix: {:?}", ix);
-    println!("x: {}", x);
-    println!("y: {}", y);
+    println!("x: {:?}", x);
+    println!("y: {:?}", y);
     return (x, y);
 }

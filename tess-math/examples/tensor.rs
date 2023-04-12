@@ -18,4 +18,10 @@ fn main() {
     let tensor3 = Tensor::new(vec![9, 10, 11, 12], vec![2, 2]);
     let tensor = Tensor::stack(&vec![tensor1, tensor2, tensor3], 0);
     println!("{:?}", tensor);
+
+    let tensor1 = Tensor::new(vec![1, 2], vec![2, 1]);
+
+    println!("{:?}", tensor1);
+    // get the first element of the tensor
+    println!("{:?}", tensor1.get(0, 0));
 }

@@ -24,6 +24,15 @@ where
 {
     pub fn new(data: Vec<T>, shape: Vec<usize>) -> Self {
         assert_eq!(data.len(), shape.iter().product());
+        // if shape is 1 dimensional, convert it to a 2 dimensional tensor
+        // for example a [2] shape becomes a [2, 1] shape
+        // and a [3] shape becomes a [3, 1] shape
+        let shape = if shape.len() == 1 {
+            vec![shape[0], 1]
+        } else {
+            shape
+        };
+
         Tensor { shape, data }
     }
 
@@ -71,6 +80,7 @@ pub enum MyRange {
 pub enum Indices {
     Vec(Vec<usize>),
     Range(MyRange),
+    Single(usize),
 }
 
 // from range
@@ -162,6 +172,7 @@ where
             },
 
             Indices::Vec(indices) => indices,
+            Indices::Single(index) => vec![index],
         };
 
         let column_indices: Vec<usize> = match column.into() {
@@ -175,6 +186,7 @@ where
                 MyRange::Empty => vec![],
             },
             Indices::Vec(indices) => indices,
+            Indices::Single(index) => vec![index],
         };
 
         let mut data = Vec::new();
@@ -285,6 +297,8 @@ where
     }
 
     fn index(&self, row: usize, col: usize) -> T {
+        // check if the indices are in bounds
+        assert!(row < self.shape[0] && col < self.shape[1]);
         self.data[row * self.shape[1] + col]
     }
 }
@@ -368,7 +382,7 @@ where
 // impl Debug
 impl<T> Debug for Tensor<T>
 where
-    T: Copy + Debug + PartialEq<i32>,
+    T: Copy + Debug + PartialEq<T>,
 {
     // add new line after each row in the tensor
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -451,6 +465,8 @@ mod tests {
         assert_eq!(tensor.get(0..2, 0..3).data(), &[1, 2, 3, 4, 5, 6]);
 
         assert_eq!(tensor.get(1, 2).data(), &[6]);
+
+        assert_eq!(tensor.get(.., 1).data(), &[2, 5]);
 
         // Test getting a sub-tensor with a single row or column
         assert_eq!(tensor.get(1..2, 0..3).data(), &[4, 5, 6]);
