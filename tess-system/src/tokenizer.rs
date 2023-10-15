@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::{ParallelIterator};
 
 #[derive(Clone, Debug)]
 pub struct Token(u8);
