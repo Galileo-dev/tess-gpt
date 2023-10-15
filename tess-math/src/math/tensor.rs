@@ -3,7 +3,6 @@ use std::{
     fmt::{Debug, Formatter},
     mem,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
-    slice,
 };
 
 // ===========================================================
@@ -400,7 +399,7 @@ where
 
         // add to the start of each row from this point on
 
-        let mut index = 0;
+        let _index = 0;
         for i in 0..self.shape[0] {
             s.push_str(&indent2);
             s.push_str("[");

@@ -24,12 +24,12 @@ impl<T> LanguageModel<T> for BigramLanguageModel
 where
     T: Debug + Display,
 {
-    fn train(&mut self, dataset: &LanguageModelDataset<T>) {
+    fn train(&mut self, _dataset: &LanguageModelDataset<T>) {
         // get a pair of characters from the dataset
         unimplemented!()
     }
 
-    fn score(&self, dataset: &LanguageModelDataset<T>) -> f64 {
+    fn score(&self, _dataset: &LanguageModelDataset<T>) -> f64 {
         unimplemented!()
     }
 }
