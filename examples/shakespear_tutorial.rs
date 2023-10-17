@@ -93,14 +93,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let encoded: Vec<u8> = encoded.into_iter().map(|t| t.into()).collect();
 
     // create a tensor from the encoded tokens
-    let shape = vec![encoded.clone().len()];
+    let shape = vec![1, encoded.clone().len()];
     println!("shape: {:?}", shape);
     let data = Tensor::new(encoded, shape);
 
     // get the first 100 tokens from the tensor
     // slice of usize from 0 to 100
     // let data = data.get(slice);
-    println!("data: {:?}", data);
+    // println!("data: {:?}", data);
     println!("index 1 is {:?}", data.get(.., 1));
     println!("the first 100:  {:?}", data.get(.., 0..100));
 
@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let context = x.get(.., ..t + 1);
         let target = y.get(.., t);
         println!(
-            "when input is : {:?},\n the target it : {:?}",
+            "when input is : {:?},\n the target is : {:?}",
             context, target
         );
     }
@@ -134,22 +134,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get a batch of data
     let (xb, yb) = get_batch("train", &test_data, &train_data, batch_size, block_size);
 
-    println!("inputs: {:?}", xb);
-    println!("targets: {:?}", yb);
+    // println!("inputs: {:?}", xb);
+    // println!("targets: {:?}", yb);
 
-    println!("-----");
+    // println!("-----");
 
-    for b in 0..batch_size {
-        println!("batch: {}", b);
-        for t in 0..block_size {
-            let context = xb.get(b, 0..t + 1);
-            let target = yb.get(b, t);
-            println!(
-                "when input is : {:?}, the target it : {:?}",
-                context, target
-            );
-        }
-    }
+    // for b in 0..batch_size {
+    //     println!("batch: {}", b);
+    //     for t in 0..block_size {
+    //         let c = t;
+    //         let r = b;
+    //         println!("{xb:?}");
+
+    //         println!("c: {}, r: {}", c, r);
+
+    //         let context = xb.get(b, 0..=t);
+    //         let target = yb.get(b, t);
+    //         println!(
+    //             "when input is : {:?}, the target is : {:?}",
+    //             context, target
+    //         );
+    //     }
+    // }
 
     Ok(())
 }
@@ -173,7 +179,6 @@ fn get_batch(
         vec![batch_size],
         1337,
     );
-
     // [data[i:i+block_size] for i in ix]
     let x = ix
         .iter()

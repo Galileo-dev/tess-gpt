@@ -1,17 +1,18 @@
 use rand::prelude::*;
+use std::fmt::Display;
 use std::{
-    fmt::{Debug, Formatter},
+    fmt::{self, Debug, Formatter},
     mem,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
 // ===========================================================
-/// A simple tensor library.
+// A simple tensor library.
 // Author: Galileo-Dev
 // Date: 2023-04-09
 // ===========================================================
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct Tensor<T> {
     shape: Vec<usize>,
     data: Vec<T>,
@@ -32,15 +33,19 @@ where
             shape
         };
 
-        Tensor { shape, data }
+        Self { shape, data }
     }
 
-    pub fn shape(&self) -> &Vec<usize> {
+    pub const fn shape(&self) -> &Vec<usize> {
         &self.shape
     }
 
-    pub fn data(&self) -> &Vec<T> {
+    pub const fn data(&self) -> &Vec<T> {
         &self.data
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -156,7 +161,7 @@ where
     /// tensor.get(.., ..2);
     pub fn get<R, C>(&self, row: R, column: C) -> Self
     where
-        for<'a> R: Into<Indices>,
+        R: for<'a> Into<Indices>,
         C: for<'a> Into<Indices>,
     {
         let row_indices: Vec<usize> = match row.into() {
@@ -196,7 +201,7 @@ where
             }
         }
 
-        Tensor::new(data, vec![row_indices.len(), column_indices.len()])
+        Self::new(data, vec![row_indices.len(), column_indices.len()])
     }
 
     fn num_elements(&self) -> usize {
@@ -249,13 +254,14 @@ where
     /// ```
     /// use tess_math::math::Tensor;
     ///
-    /// let tensor1 = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3]);
-    /// let tensor1 = &[1.0, 2.0, 3.0];
-    /// let tensor2 = &[4.0, 5.0, 6.0, 7.0];
-    /// let tensor3 = &[8.0];
+    /// let tensor1 = Tensor::new(vec![1, 2, 3, 4], vec![2, 2]);
+    /// let tensor2 = Tensor::new(vec![5, 6, 7, 8], vec![2, 2]);
+    /// let tensor3 = Tensor::new(vec![9, 10, 11, 12], vec![2, 2]);
+    /// let tensor = Tensor::stack(&[tensor1, tensor2, tensor3], 0);
     ///
-    /// let stacked = stack_tensors(&[tensor1, tensor2, tensor3], 0);
-    /// assert_eq!(stacked, vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+    /// assert_eq!(tensor.data(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    /// assert_eq!(tensor.shape(), &[6, 2]);
+    /// ```
     pub fn stack(tensors: &[Tensor<T>], axis: usize) -> Tensor<T> {
         let mut new_shape = tensors[0].shape.clone();
         new_shape[axis] = tensors.iter().map(|t| t.shape[axis]).sum();
@@ -346,7 +352,8 @@ impl<T> Tensor<T>
 where
     T: Copy + Debug,
 {
-    pub fn iter(&self) -> TensorIter<T> {
+    #[must_use]
+    pub const fn iter(&self) -> TensorIter<T> {
         TensorIter {
             tensor: self,
             index: 0,
@@ -354,71 +361,55 @@ where
     }
 }
 
-impl<T> FromIterator<Tensor<T>> for Tensor<T>
+impl<T> FromIterator<Self> for Tensor<T>
 where
     T: Copy + Debug,
 {
-    fn from_iter<I: IntoIterator<Item = Tensor<T>>>(iter: I) -> Self {
-        let mut tensors = iter.into_iter();
+    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
         let mut data = Vec::new();
         let mut shape = Vec::new();
-        let mut output: Vec<Tensor<T>> = Vec::new();
-        if let Some(first_tensor) = tensors.next() {
+        let mut iter = iter.into_iter().peekable();
+        if let Some(first_tensor) = iter.peek() {
             shape.push(1);
             shape.extend(first_tensor.shape.clone());
-            data.extend(first_tensor.data.clone());
-            output.push(first_tensor);
         }
-        for tensor in tensors {
+        for tensor in iter {
             shape[0] += 1;
-            data.extend(tensor.data.clone());
-            output.push(tensor);
+            data.extend(tensor.data);
         }
         Self::new(data, shape)
     }
 }
 
-// impl Debug
-impl<T> Debug for Tensor<T>
-where
-    T: Copy + Debug + PartialEq<T>,
-{
-    // add new line after each row in the tensor
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // pytorch style
-        let mut s = String::new();
-
+impl<T: Display> Debug for Tensor<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let indent1 = " ".repeat(8);
         let indent2 = " ".repeat(15);
 
-        s.push_str("Tensor{ shape: ");
-        s.push_str(&format!("{:?}", self.shape));
-        s.push_str(",\n");
-        s.push_str(&indent1);
-        s.push_str("data:\n");
+        write!(f, "Tensor{{ shape: {:?},\n{}data: [", self.shape, indent1)?;
 
-        // add to the start of each row from this point on
+        if self.shape.len() == 2 {
+            let rows = self.shape[0];
+            let cols = self.shape[1];
 
-        let _index = 0;
-        for i in 0..self.shape[0] {
-            s.push_str(&indent2);
-            s.push_str("[");
-            for j in 0..self.shape[1] {
-                s.push_str(&format!("{:?}", self.index(i, j)));
-                if j != self.shape[1] - 1 {
-                    s.push_str(", ");
+            for row in 0..rows {
+                if row != 0 {
+                    write!(f, ",\n{indent2}")?;
                 }
-            }
-            s.push_str("]");
-            s.push_str(",");
-            if i != self.shape[0] - 1 {
-                s.push_str("\n");
+
+                let mut row_str = String::new();
+                for col in 0..cols {
+                    if col != 0 {
+                        row_str.push_str(", ");
+                    }
+                    let index = row * cols + col;
+                    row_str.push_str(&self.data[index].to_string());
+                }
+                write!(f, "[{row_str}]")?;
             }
         }
-        s.push_str("\n}");
-        write!(f, "{}", s);
 
-        Ok(())
+        write!(f, "] }}")
     }
 }
 
@@ -434,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "assertion `left == right` failed\n  left: 6\n right: 8")]
     fn test_new_panic() {
         let data = vec![1, 2, 3, 4, 5, 6];
         let shape = vec![2, 4]; // incorrect shape
@@ -471,6 +462,12 @@ mod tests {
         assert_eq!(tensor.get(1..2, 0..3).data(), &[4, 5, 6]);
         assert_eq!(tensor.get(0..2, 2..=2).data(), &[3, 6]);
         assert_eq!(tensor.get(1..2, &[0, 1, 2]).data(), &[4, 5, 6]);
+
+        // Test a 1D tensor
+        let tensor = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![6]);
+        assert_eq!(tensor.get(0..=1, ..).data(), &[1, 2]);
+        assert_eq!(tensor.get(0..=3, ..).data(), &[1, 2, 3, 4]);
+        assert_eq!(tensor.get(0..=5, ..).data(), &[1, 2, 3, 4, 5, 6]);
     }
 
     #[test]
@@ -478,7 +475,7 @@ mod tests {
         let tensor1 = Tensor::new(vec![1, 2, 3, 4], vec![2, 2]);
         let tensor2 = Tensor::new(vec![5, 6, 7, 8], vec![2, 2]);
         let tensor3 = Tensor::new(vec![9, 10, 11, 12], vec![2, 2]);
-        let tensor = Tensor::stack(&vec![tensor1, tensor2, tensor3], 0);
+        let tensor = Tensor::stack(&[tensor1, tensor2, tensor3], 0);
 
         assert_eq!(tensor.data(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
         assert_eq!(tensor.shape(), &[6, 2]);
@@ -486,9 +483,22 @@ mod tests {
         let tensor1 = Tensor::new(vec![1, 2, 3, 4], vec![2, 2]);
         let tensor2 = Tensor::new(vec![5, 6, 7, 8], vec![2, 2]);
         let tensor3 = Tensor::new(vec![9, 10, 11, 12], vec![2, 2]);
-        let tensor = Tensor::stack(&vec![tensor1, tensor2, tensor3], 1);
+        let tensor = Tensor::stack(&[tensor1, tensor2, tensor3], 1);
 
         assert_eq!(tensor.data(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
         assert_eq!(tensor.shape(), &[2, 6]);
+    }
+
+    #[test]
+    fn test_print() {
+        // 2x3 tensor
+        let tensor = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3]);
+        // test against string (take into account the indentation)
+        println!("{tensor:?}");
+
+        let s = "Tensor{ shape: [2, 3],
+        data: [[1, 2, 3],
+               [4, 5, 6]] }";
+        assert_eq!(format!("{tensor:?}"), s);
     }
 }
