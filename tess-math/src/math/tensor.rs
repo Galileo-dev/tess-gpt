@@ -52,7 +52,20 @@ where
         self.data.len()
     }
 
-    pub fn randint(low: i32, high: i32, shape: Vec<usize>, seed: u64) -> Tensor<i32> {
+    pub fn zeros(shape: Vec<usize>) -> Self
+    where
+        T: Default,
+    {
+        let data = vec![T::default(); shape.iter().product()];
+        Self::new(data, shape)
+    }
+}
+
+impl<T> Tensor<T>
+where
+    T: Copy + Debug + PartialOrd + rand::distributions::uniform::SampleUniform,
+{
+    pub fn randn(low: T, high: T, shape: Vec<usize>, seed: u64) -> Tensor<T> {
         assert!(low <= high, "low must be less than or equal to high");
         // if no seed is provided, use the current time as a seed
         let mut rng = if seed == 0 {
@@ -205,6 +218,43 @@ where
         Self::new(data, vec![row_indices.len(), column_indices.len()])
     }
 
+    pub fn set<R, C, V>(&mut self, row: R, column: C, values: V)
+    where
+        R: for<'a> Into<Indices>,
+        C: for<'a> Into<Indices>,
+        V: IntoIterator<Item = T>,
+    {
+        let row_indices: Vec<usize> = Self::map_indices(row, self.shape[0]);
+        let column_indices: Vec<usize> = Self::map_indices(column, self.shape[1]);
+
+        let mut value_iter = values.into_iter();
+
+        for row in &row_indices {
+            for col in &column_indices {
+                let value = value_iter.next().expect("Not enough values provided");
+                *self.index_mut(*row, *col) = value;
+            }
+        }
+
+        assert!(value_iter.next().is_none(), "Too many values provided");
+    }
+
+    fn map_indices<I: for<'a> Into<Indices>>(indices: I, shape_dim: usize) -> Vec<usize> {
+        match indices.into() {
+            Indices::Range(range) => match range {
+                MyRange::Range(range) => range_to_indices(range, shape_dim),
+                MyRange::RangeFrom(range) => range_to_indices(range, shape_dim),
+                MyRange::RangeTo(range) => range_to_indices(range, shape_dim),
+                MyRange::RangeFull(range) => range_to_indices(range, shape_dim),
+                MyRange::RangeInclusive(range) => range_to_indices(range, shape_dim),
+                MyRange::RangeToInclusive(range) => range_to_indices(range, shape_dim),
+                MyRange::Empty => vec![],
+            },
+            Indices::Vec(indices) => indices,
+            Indices::Single(index) => vec![index],
+        }
+    }
+
     fn num_elements(&self) -> usize {
         self.shape.iter().product()
     }
@@ -307,6 +357,13 @@ where
         // check if the indices are in bounds
         assert!(row < self.shape[0] && col < self.shape[1]);
         self.data[row * self.shape[1] + col]
+    }
+
+    pub fn index_mut(&mut self, row: usize, col: usize) -> &mut T {
+        // Check if the indices are in bounds
+        assert!(row < self.shape[0] && col < self.shape[1]);
+        let index = row * self.shape[1] + col;
+        &mut self.data[index]
     }
 }
 

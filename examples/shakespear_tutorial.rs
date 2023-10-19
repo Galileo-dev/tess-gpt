@@ -161,7 +161,7 @@ fn get_batch(
         _ => panic!("split must be 'train' or 'test'"),
     };
 
-    let ix: Tensor<i32> = Tensor::<i32>::randint(
+    let ix: Tensor<i32> = Tensor::<i32>::randn(
         0,
         (data.len() - block_size).try_into().unwrap(),
         vec![batch_size],

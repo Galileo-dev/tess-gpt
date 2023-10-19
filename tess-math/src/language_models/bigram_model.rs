@@ -1,12 +1,24 @@
+use crate::math::Tensor;
+
 use super::LanguageModel;
+use super::TokenEmbeddingTable;
 use std::fmt::Debug;
 use std::fmt::Display;
 
-pub struct BigramLanguageModel();
+pub struct BigramLanguageModel {
+    token_embedding_table: TokenEmbeddingTable,
+}
 
 impl BigramLanguageModel {
-    pub fn new() -> Self {
-        BigramLanguageModel {}
+    pub fn new(vocab_size: u32) -> Self {
+        Self {
+            token_embedding_table: TokenEmbeddingTable::new(vocab_size, vocab_size),
+        }
+    }
+
+    pub fn forward(&self, idx: usize, target: usize) -> f64 {
+        // idx and targets are both (B, T) tensors of integers
+        let logits = self.token_embedding_table.get(idx); //(B, T, C)
     }
 }
 

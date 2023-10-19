@@ -1,6 +1,9 @@
 mod bigram_model;
 pub use bigram_model::{BigramLanguageModel, LanguageModelDataset};
 
+mod token_embedding_table;
+pub use token_embedding_table::TokenEmbeddingTable;
+
 use std::fmt::{Debug, Display};
 
 pub trait LanguageModel<T>

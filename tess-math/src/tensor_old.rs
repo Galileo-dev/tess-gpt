@@ -113,7 +113,7 @@ where
         Self::new(data, shape)
     }
 
-    pub fn randint(low: i32, high: i32, shape: Vec<usize>, seed: u64) -> Tensor<i32> {
+    pub fn randn(low: i32, high: i32, shape: Vec<usize>, seed: u64) -> Tensor<i32> {
         assert!(low <= high, "low must be less than or equal to high");
         // if no seed is provided, use the current time as a seed
         let mut rng = if seed == 0 {
