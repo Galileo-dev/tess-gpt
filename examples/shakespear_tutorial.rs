@@ -134,28 +134,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get a batch of data
     let (xb, yb) = get_batch("train", &test_data, &train_data, batch_size, block_size);
 
-    // println!("inputs: {:?}", xb);
-    // println!("targets: {:?}", yb);
+    println!("inputs: {:?}", xb);
+    println!("targets: {:?}", yb);
 
-    // println!("-----");
+    println!("-----");
 
-    // for b in 0..batch_size {
-    //     println!("batch: {}", b);
-    //     for t in 0..block_size {
-    //         let c = t;
-    //         let r = b;
-    //         println!("{xb:?}");
+    for b in 0..batch_size {
+        println!("batch: {}", b);
+        for t in 0..block_size {
+            // let c = t;
+            // let r = b;
+            // println!("{xb:?}");
 
-    //         println!("c: {}, r: {}", c, r);
+            // println!("c: {}, r: {}", c, r);
 
-    //         let context = xb.get(b, 0..=t);
-    //         let target = yb.get(b, t);
-    //         println!(
-    //             "when input is : {:?}, the target is : {:?}",
-    //             context, target
-    //         );
-    //     }
-    // }
+            let context = xb.get(b, 0..=t);
+            let target = yb.get(b, t);
+            println!(
+                "when input is : {:?}, the target is : {:?}",
+                context, target
+            );
+        }
+    }
 
     Ok(())
 }
@@ -179,24 +179,30 @@ fn get_batch(
         vec![batch_size],
         1337,
     );
+
+    println!("ix: {:?}", ix);
+    println!("data shape: {:?}", data.shape());
+    println!("data: {:?}", data.get(.., 0..100));
+
     // [data[i:i+block_size] for i in ix]
     let x = ix
         .iter()
-        .map(|i| data.get(.., *i as usize..*i as usize + block_size))
-        // collect into a tensor using stack
+        .map(|i| {
+            let adjusted_index = *i as usize;
+            let slice_option = data.get(.., adjusted_index..adjusted_index + block_size);
+            slice_option
+        })
         .collect::<Tensor<u8>>();
 
     // [data[i+1:i+block_size+1] for i in ix]
     let y = ix
         .iter()
-        .map(|i| data.get(.., *i as usize + 1..*i as usize + block_size + 1))
-        // collect into a tensor using stack
+        .map(|i| {
+            let adjusted_index = *i as usize;
+            let slice_option = data.get(.., adjusted_index + 1..adjusted_index + block_size + 1);
+            slice_option
+        })
         .collect::<Tensor<u8>>();
 
-    // x = Tensor::stack(data.get_range()
-    // print block_1
-    println!("ix: {:?}", ix);
-    println!("x: {:?}", x);
-    println!("y: {:?}", y);
     return (x, y);
 }
