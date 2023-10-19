@@ -89,38 +89,38 @@ pub enum Indices {
 
 // from range
 impl From<Range<usize>> for Indices {
-    fn from(range: Range<usize>) -> Indices {
-        Indices::Range(MyRange::Range(range))
+    fn from(range: Range<usize>) -> Self {
+        Self::Range(MyRange::Range(range))
     }
 }
 
 impl From<std::ops::RangeTo<usize>> for Indices {
-    fn from(range: std::ops::RangeTo<usize>) -> Indices {
-        Indices::Range(MyRange::RangeTo(range))
+    fn from(range: std::ops::RangeTo<usize>) -> Self {
+        Self::Range(MyRange::RangeTo(range))
     }
 }
 
 impl From<std::ops::RangeFrom<usize>> for Indices {
-    fn from(range: std::ops::RangeFrom<usize>) -> Indices {
-        Indices::Range(MyRange::RangeFrom(range))
+    fn from(range: std::ops::RangeFrom<usize>) -> Self {
+        Self::Range(MyRange::RangeFrom(range))
     }
 }
 
 impl From<std::ops::RangeFull> for Indices {
-    fn from(range: std::ops::RangeFull) -> Indices {
-        Indices::Range(MyRange::RangeFull(range))
+    fn from(range: std::ops::RangeFull) -> Self {
+        Self::Range(MyRange::RangeFull(range))
     }
 }
 
 impl From<std::ops::RangeInclusive<usize>> for Indices {
-    fn from(range: std::ops::RangeInclusive<usize>) -> Indices {
-        Indices::Range(MyRange::RangeInclusive(range))
+    fn from(range: std::ops::RangeInclusive<usize>) -> Self {
+        Self::Range(MyRange::RangeInclusive(range))
     }
 }
 
 impl From<std::ops::RangeToInclusive<usize>> for Indices {
-    fn from(range: std::ops::RangeToInclusive<usize>) -> Indices {
-        Indices::Range(MyRange::RangeToInclusive(range))
+    fn from(range: std::ops::RangeToInclusive<usize>) -> Self {
+        Self::Range(MyRange::RangeToInclusive(range))
     }
 }
 
@@ -128,15 +128,15 @@ impl<const N: usize> From<&[usize; N]> for Indices {
     fn from(slice: &[usize; N]) -> Self {
         let mut indices = Vec::new();
         for i in slice {
-            indices.push(*i as usize);
+            indices.push(*i);
         }
-        Indices::Vec(indices)
+        Self::Vec(indices)
     }
 }
 
 impl From<usize> for Indices {
     fn from(index: usize) -> Self {
-        Indices::Vec(vec![index])
+        Self::Vec(vec![index])
     }
 }
 
@@ -159,13 +159,14 @@ where
     /// tensor.get(.., 1);
     ///
     /// tensor.get(.., ..2);
+    #[must_use]
     pub fn get<R, C>(&self, row: R, column: C) -> Self
     where
         R: for<'a> Into<Indices>,
         C: for<'a> Into<Indices>,
     {
         let row_indices: Vec<usize> = match row.into() {
-            Indices::Range(range) => match range.into() {
+            Indices::Range(range) => match range {
                 MyRange::Range(range) => range_to_indices(range, self.shape[0]),
                 MyRange::RangeFrom(range) => range_to_indices(range, self.shape[0]),
                 MyRange::RangeTo(range) => range_to_indices(range, self.shape[0]),
@@ -180,7 +181,7 @@ where
         };
 
         let column_indices: Vec<usize> = match column.into() {
-            Indices::Range(range) => match range.into() {
+            Indices::Range(range) => match range {
                 MyRange::Range(range) => range_to_indices(range, self.shape[1]),
                 MyRange::RangeFrom(range) => range_to_indices(range, self.shape[1]),
                 MyRange::RangeTo(range) => range_to_indices(range, self.shape[1]),
@@ -241,7 +242,7 @@ where
                 new_index += old_index * stride;
                 index -= old_index * stride;
             }
-            new_data[new_index] = mem::MaybeUninit::new(element.clone());
+            new_data[new_index] = mem::MaybeUninit::new(*element);
         }
 
         self.data = unsafe { new_data.into_iter().map(|x| x.assume_init()).collect() };
@@ -262,7 +263,8 @@ where
     /// assert_eq!(tensor.data(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     /// assert_eq!(tensor.shape(), &[6, 2]);
     /// ```
-    pub fn stack(tensors: &[Tensor<T>], axis: usize) -> Tensor<T> {
+    #[must_use]
+    pub fn stack(tensors: &[Self], axis: usize) -> Self {
         let mut new_shape = tensors[0].shape.clone();
         new_shape[axis] = tensors.iter().map(|t| t.shape[axis]).sum();
 
@@ -294,11 +296,11 @@ where
                     new_index += old_index * stride;
                     index -= old_index * stride;
                 }
-                new_data.push(element.clone());
+                new_data.push(*element);
             }
             offset += tensor.shape[axis];
         }
-        Tensor::new(new_data, new_shape)
+        Self::new(new_data, new_shape)
     }
 
     fn index(&self, row: usize, col: usize) -> T {
@@ -349,6 +351,7 @@ impl<T> Tensor<T>
 where
     T: Copy + Debug,
 {
+    #[must_use]
     pub fn iter(&self) -> TensorIter<T> {
         TensorIter {
             index: 0,
@@ -361,19 +364,19 @@ impl<T> FromIterator<Tensor<T>> for Tensor<T>
 where
     T: Copy + Debug,
 {
-    fn from_iter<I: IntoIterator<Item = Tensor<T>>>(iter: I) -> Self {
-        let tensor_vec: Vec<Tensor<T>> = iter.into_iter().collect();
+    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
+        let tensor_vec: Vec<Self> = iter.into_iter().collect();
 
         // Error handling: return an empty tensor if no items
         if tensor_vec.is_empty() {
-            return Tensor::new(Vec::new(), Vec::new());
+            return Self::new(Vec::new(), Vec::new());
         }
 
         // Call your existing stack function here
         // Assuming the function signature is something like:
         // fn stack_tensors(tensors: &[Tensor<T>]) -> Tensor<T>
 
-        Tensor::stack(&tensor_vec, 0)
+        Self::stack(&tensor_vec, 0)
     }
 }
 

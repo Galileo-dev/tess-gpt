@@ -61,19 +61,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if c == "\n" {
             print!("\\n ");
         } else {
-            print!("{} ", c);
+            print!("{c} ");
         }
     }
     println!();
     print!("tokenizer tokens: ");
     for t in tokenizer_tokens {
-        print!("{} ", t);
+        print!("{t} ");
     }
     println!();
     println!();
     // use chars to create a string and encode it
     let input = chars.iter().collect::<String>();
-    let encoded = tokenizer.encode(input.clone())?;
+    let encoded = tokenizer.encode(input)?;
 
     // print the first 100 characters
     println!("Text: ");
@@ -112,19 +112,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("test len: {}", test_data.len());
 
     let block_size = 8; // 8 tokens per block
-    let block = train_data.get(.., ..block_size + 1);
-    println!("block: {:?}", block);
+    let block = train_data.get(.., ..=block_size);
+    println!("block: {block:?}");
 
     // show an example of how it learns
     let x = train_data.get(.., ..block_size);
     let y = train_data.get(.., 1..=block_size);
     for t in 0..block_size {
-        let context = x.get(.., ..t + 1);
+        let context = x.get(.., ..=t);
         let target = y.get(.., t);
-        println!(
-            "when input is : {:?},\n the target is : {:?}",
-            context, target
-        );
+        println!("when input is : {context:?},\n the target is : {target:?}");
     }
 
     // batch dimension
@@ -134,26 +131,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get a batch of data
     let (xb, yb) = get_batch("train", &test_data, &train_data, batch_size, block_size);
 
-    println!("inputs: {:?}", xb);
-    println!("targets: {:?}", yb);
+    println!("inputs: {xb:?}");
+    println!("targets: {yb:?}");
 
     println!("-----");
 
     for b in 0..batch_size {
-        println!("batch: {}", b);
+        println!("batch: {b}");
         for t in 0..block_size {
-            // let c = t;
-            // let r = b;
-            // println!("{xb:?}");
-
-            // println!("c: {}, r: {}", c, r);
-
             let context = xb.get(b, 0..=t);
             let target = yb.get(b, t);
-            println!(
-                "when input is : {:?}, the target is : {:?}",
-                context, target
-            );
+            println!("when input is : {context:?}, the target is : {target:?}");
         }
     }
 
@@ -180,7 +168,7 @@ fn get_batch(
         1337,
     );
 
-    println!("ix: {:?}", ix);
+    println!("ix: {ix:?}");
     println!("data shape: {:?}", data.shape());
     println!("data: {:?}", data.get(.., 0..100));
 
@@ -189,8 +177,8 @@ fn get_batch(
         .iter()
         .map(|i| {
             let adjusted_index = *i as usize;
-            let slice_option = data.get(.., adjusted_index..adjusted_index + block_size);
-            slice_option
+
+            data.get(.., adjusted_index..adjusted_index + block_size)
         })
         .collect::<Tensor<u8>>();
 
@@ -199,10 +187,10 @@ fn get_batch(
         .iter()
         .map(|i| {
             let adjusted_index = *i as usize;
-            let slice_option = data.get(.., adjusted_index + 1..adjusted_index + block_size + 1);
-            slice_option
+
+            data.get(.., (adjusted_index + 1)..=(adjusted_index + block_size))
         })
         .collect::<Tensor<u8>>();
 
-    return (x, y);
+    (x, y)
 }
