@@ -23,5 +23,5 @@ fn main() {
 
     println!("{:?}", tensor1);
     // get the first element of the tensor
-    println!("{:?}", tensor1.get(0, 0));
+    // println!("{:?}", tensor1.get(0, 0));
 }

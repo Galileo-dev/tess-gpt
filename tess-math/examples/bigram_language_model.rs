@@ -23,7 +23,7 @@ fn main() {
     let dataset = LanguageModelDataset { data: names };
 
     // now create our bigram language model
-    let mut bigram_model = BigramLanguageModel::new();
+    // let mut bigram_model = BigramLanguageModel::new();
 
     // train the model
     bigram_model.train(&dataset);

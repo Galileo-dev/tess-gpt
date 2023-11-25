@@ -16,10 +16,10 @@ impl BigramLanguageModel {
         }
     }
 
-    pub fn forward(&self, idx: usize, target: usize) -> f64 {
-        // idx and targets are both (B, T) tensors of integers
-        let logits = self.token_embedding_table.get(idx); //(B, T, C)
-    }
+    // pub fn forward(&self, idx: usize, target: usize) -> f64 {
+    //     // idx and targets are both (B, T) tensors of integers
+    //     let logits = self.token_embedding_table.get(idx); //(B, T, C)
+    // }
 }
 
 pub struct LanguageModelDataset<T> {

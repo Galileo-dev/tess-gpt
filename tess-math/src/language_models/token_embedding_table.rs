@@ -12,24 +12,23 @@ impl TokenEmbeddingTable {
         Self { table: data }
     }
 
-    pub fn forward(&self, idx: Tensor<u8>) -> Tensor<u8> {
-        let batch_size = idx.shape()[0];
-        let embedding_dim = self.table.shape()[1];
-        let seq_len = idx.shape()[1];
+    // pub fn forward(&self, idx: Tensor<u8>) -> Tensor<u8> {
+    //     let batch_size = idx.shape()[0];
+    //     let embedding_dim = self.table.shape()[1];
+    //     let seq_len = idx.shape()[1];
 
-        let mut output_tensor = Tensor::zeros(vec![batch_size, embedding_dim]);
+    //     let mut output_tensor = Tensor::zeros(vec![batch_size, embedding_dim]);
 
-        for i in 0..batch_size {
-            for j in 0..seq_len {
-                let token = idx.get(i, j);
-                // TODO: rethink my tensor implementation
+    //     for i in 0..batch_size {
+    //         for j in 0..seq_len {
+    //             let token = idx.get(i, j);
 
-                let embedding = self.table.get(token, ..);
+    //             let embedding = self.table.get(token, ..);
 
-                output_tensor.set(i, j, embedding);
-            }
-        }
+    //             output_tensor.set(i, j, embedding);
+    //         }
+    //     }
 
-        self.table.get(idx)
-    }
+    //     self.table.get(idx)
+    // }
 }

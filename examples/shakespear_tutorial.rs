@@ -71,6 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
     println!();
+
     // use chars to create a string and encode it
     let input = chars.iter().collect::<String>();
     let encoded = tokenizer.encode(input)?;
@@ -99,8 +100,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // get the first 100 tokens from the tensor
     // slice of usize from 0 to 100
-    // let data = data.get(slice);
-    // println!("data: {:?}", data);
     println!("index 1 is {:?}", data.get(.., 1));
     println!("the first 100:  {:?}", data.get(.., 0..100));
 
