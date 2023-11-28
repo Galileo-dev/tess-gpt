@@ -1,8 +1,10 @@
-pub use self::tensor::Tensor;
-
 pub mod tensor;
+pub use tensor::Tensor;
+
 pub mod tensor_arithmetic;
+
 pub mod tensor_getter;
+pub mod tensor_index;
 pub mod tensor_iter;
 pub mod tensor_setter;
 
@@ -42,6 +44,21 @@ mod tests {
     fn test_get() {
         let tensor = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3]);
 
+        assert_eq!(tensor.get(&[0], 0), Tensor::new(vec![1, 2, 3], vec![1, 3]));
+
+        assert_eq!(
+            tensor.get(&[0, 1], 0),
+            Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3])
+        );
+
+        let tensor2 = Tensor::new((0..27).collect::<Vec<_>>(), vec![3, 3, 3]);
+        println!("{tensor2:?}");
+        assert_eq!(
+            tensor2.get(&[0], 0),
+            Tensor::new(vec![0, 1, 2, 3, 4, 5, 6, 7, 8], vec![1, 3, 3])
+        );
+
+        // assert_eq!(tensor.get(&[0, 1], 0), &[1, 2, 3, 4, 5, 6]);
         // Test getting a single element
         // tensor.get((Indices::Single(0),));
         // assert_eq!(tensor.get((Indices::Single(0),)).data(), &[1]);
@@ -82,6 +99,26 @@ mod tests {
         // assert_eq!(tensor.get(0..1, 0..50).data(), &(0..50).collect::<Vec<_>>());
     }
 
+    #[test]
+    fn test_get_1d() {
+        let tensor = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3]);
+
+        assert_eq!(
+            tensor.get_1d(&(0..1)),
+            Tensor::new(vec![1, 2, 3], vec![1, 3])
+        );
+    }
+
+    #[test]
+    fn test_get_indices() {
+        let mut tensor = Tensor::new(vec![1, 2, 3, 4, 5, 6], vec![2, 3]);
+        println!("{tensor:?}");
+        // get 1d tensor from 2d tensor
+        // assert_eq!(
+        //     tensor.get_indices(&[0, 1], 0),
+        //     Tensor::new(vec![1, 2, 3, 4], vec![2, 2])
+        // );
+    }
     #[test]
     fn test_tensor_set() {
         // use a tensor to set another tensor, increasing it's dimensionality

@@ -30,7 +30,7 @@ where
         assert_eq!(data.len(), shape.iter().product());
 
         let shape = if shape.len() == 1 {
-            vec![shape[0], 1]
+            vec![1, shape[0]]
         } else {
             shape
         };
